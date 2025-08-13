@@ -7,7 +7,7 @@ cd $WORKDIR
 
 # 1️⃣ Cài phụ thuộc
 sudo apt update
-sudo apt install -y wget curl gcc-9 g++-9 make build-essential net-tools iproute2 iptables iptables-persistent bsdtar zip
+sudo apt install -y wget curl gcc-9 g++-9 make build-essential net-tools iproute2 iptables iptables-persistent libarchive-tools zip
 
 # 2️⃣ Tải và build 3proxy mới nhất
 echo "[INFO] Downloading 3proxy..."
