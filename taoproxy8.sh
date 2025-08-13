@@ -2,21 +2,26 @@
 set -e
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# -----------------------------
+# Cấu hình WORKDIR
+# -----------------------------
 WORKDIR="/home/cloudfly"
 WORKDATA="${WORKDIR}/data.txt"
-
-# Tạo folder WORKDIR
 sudo mkdir -p "$WORKDIR"
 sudo chown $USER:$USER "$WORKDIR"
 cd "$WORKDIR"
 
+# -----------------------------
 # Hàm sinh password ngẫu nhiên
+# -----------------------------
 random() {
     tr </dev/urandom -dc A-Za-z0-9 | head -c12
     echo
 }
 
-# Tạo IPv6 ngẫu nhiên
+# -----------------------------
+# Hàm sinh IPv6
+# -----------------------------
 array=(1 2 3 4 5 6 7 8 9 0 a b c d e f)
 gen64() {
     ip64() {
@@ -25,7 +30,9 @@ gen64() {
     echo "$1:$(ip64):$(ip64):$(ip64):$(ip64)"
 }
 
+# -----------------------------
 # Cài 3proxy
+# -----------------------------
 install_3proxy() {
     echo "Installing 3proxy..."
     URL="https://github.com/z3APA3A/3proxy/archive/3proxy-0.8.6.tar.gz"
@@ -37,7 +44,9 @@ install_3proxy() {
     cd "$WORKDIR"
 }
 
+# -----------------------------
 # Tải file proxy
+# -----------------------------
 download_proxy() {
     if [[ -f proxy.txt ]]; then
         curl -F "file=@proxy.txt" https://file.io
@@ -46,31 +55,41 @@ download_proxy() {
     fi
 }
 
+# -----------------------------
 # Sinh dữ liệu proxy
+# -----------------------------
 gen_data() {
     seq $FIRST_PORT $LAST_PORT | while read port; do
         echo "user$port/$(random)/$IP4/$port/$(gen64 $IP6)"
     done
 }
 
-# Tạo file proxy.txt
+# -----------------------------
+# Tạo file proxy.txt cho user
+# -----------------------------
 gen_proxy_file_for_user() {
     cat >proxy.txt <<EOF
 $(awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' ${WORKDATA})
 EOF
 }
 
-# Cài đặt các gói cần thiết
+# -----------------------------
+# Cài đặt dependencies
+# -----------------------------
 sudo apt update -y
-sudo apt install -y wget gcc net-tools bsdtar zip curl
+sudo apt install -y wget gcc net-tools zip curl libarchive-tools
 
+# -----------------------------
 # Lấy IP
+# -----------------------------
 IP4=$(curl -4 -s icanhazip.com)
 IP6=$(curl -6 -s icanhazip.com | cut -f1-4 -d':')
 
 echo "Internal IP = ${IP4}, External subnet for IPv6 = ${IP6}"
 
+# -----------------------------
 # Nhập port
+# -----------------------------
 while :; do
   read -p "Enter FIRST_PORT between 21000 and 61000: " FIRST_PORT
   [[ $FIRST_PORT =~ ^[0-9]+$ ]] || { echo "Enter a valid number"; continue; }
@@ -83,7 +102,9 @@ done
 LAST_PORT=$(($FIRST_PORT + 750))
 echo "LAST_PORT is $LAST_PORT. Continue..."
 
-# Sinh dữ liệu và các file config
+# -----------------------------
+# Sinh dữ liệu và file config
+# -----------------------------
 gen_data >"$WORKDATA"
 
 # Gen ifconfig script
@@ -98,7 +119,9 @@ awk -F "/" 'BEGIN{print "daemon\nmaxconn 2000\nauth strong"} {print "users "$1":
     > /usr/local/etc/3proxy/3proxy.cfg
 sudo chmod 644 /usr/local/etc/3proxy/3proxy.cfg
 
+# -----------------------------
 # Chạy ifconfig và 3proxy
+# -----------------------------
 bash "$WORKDIR/boot_ifconfig.sh"
 sudo /usr/local/etc/3proxy/bin/3proxy /usr/local/etc/3proxy/3proxy.cfg &
 
