@@ -3,7 +3,7 @@
 # Script tạo proxy IPv6 AWS
 # ==========================
 
-INSTANCE_ID="i-xxxxxxxxxxxxxxxxx" # thay bằng ID thật
+INSTANCE_ID="i-006d5e3a6909f6c0e" # thay bằng ID thật
 IPV6_COUNT=500
 PORT_START=30000
 
