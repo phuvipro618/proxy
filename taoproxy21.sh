@@ -1,4 +1,10 @@
 #!/bin/bash
+# Kiểm tra quyền root
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ Script này cần quyền root. Vui lòng chạy với sudo."
+  exit 1
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 set -e
 sleep 1
