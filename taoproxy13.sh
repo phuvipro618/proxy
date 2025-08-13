@@ -28,13 +28,10 @@ gen64() {
 }
 
 # -----------------------------
-# Cài dependencies và GCC-9
+# Cài dependencies
 # -----------------------------
 sudo apt update -y
-sudo apt install -y wget zip curl net-tools libarchive-tools build-essential gcc-9 g++-9 make
-
-export CC=gcc-9
-export CXX=g++-9
+sudo apt install -y wget zip curl net-tools libarchive-tools build-essential gcc make
 
 # -----------------------------
 # Lấy IP
@@ -72,18 +69,13 @@ awk -F "/" '{print "sudo ip -6 addr add "$5"/64 dev eth0"}' "$WORKDATA" >"$WORKD
 chmod +x "$WORKDIR/boot_ifconfig.sh"
 
 # -----------------------------
-# Tải và build 3proxy
+# Tải và build 3proxy mới
 # -----------------------------
-echo "Downloading 3proxy..."
-URL="https://github.com/z3APA3A/3proxy/archive/3proxy-0.8.6.tar.gz"
+echo "Downloading latest 3proxy..."
+URL="https://github.com/z3APA3A/3proxy/archive/refs/heads/master.tar.gz"
 wget -qO- $URL | bsdtar -xvf-
 
-cd 3proxy-3proxy-0.8.6
-
-# Patch Makefile.Linux để tránh linker error trên GCC 9
-sed -i 's/CFLAGS = -O2/CFLAGS = -O2 -fcommon/' Makefile.Linux
-
-echo "Building 3proxy with gcc-9..."
+cd 3proxy-master
 make -f Makefile.Linux
 sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
 sudo cp src/3proxy /usr/local/etc/3proxy/bin/
