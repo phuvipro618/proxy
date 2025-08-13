@@ -8,7 +8,7 @@ apt update > /dev/null 2>&1 && apt install -y git make gcc ufw curl > /dev/null 
 sleep 1
 
 cd /opt || exit
-git clone https://github.com/z3APA3A/3proxy.git > /dev/null 2>&1 || true
+git clone https://github.com/z3APA3A/3proxy.git.
 cd 3proxy || exit
 
 make -f Makefile.Linux > /dev/null 2>&1
