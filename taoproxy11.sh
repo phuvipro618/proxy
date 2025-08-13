@@ -2,10 +2,7 @@
 set -e
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-# -----------------------------
-# WORKDIR
-# -----------------------------
-WORKDIR="/home/nvtt"
+WORKDIR="/home/cloudfly"
 WORKDATA="${WORKDIR}/data.txt"
 sudo mkdir -p "$WORKDIR"
 sudo chown $USER:$USER "$WORKDIR"
@@ -31,21 +28,23 @@ gen64() {
 }
 
 # -----------------------------
-# Cài dependencies
+# Cài dependencies và GCC-10
 # -----------------------------
 sudo apt update -y
-sudo apt install -y build-essential gcc make net-tools wget zip curl libarchive-tools
+sudo apt install -y wget zip curl net-tools libarchive-tools build-essential gcc-10 g++-10 make
+
+export CC=gcc-10
+export CXX=g++-10
 
 # -----------------------------
 # Lấy IP
 # -----------------------------
 IP4=$(curl -4 -s icanhazip.com)
 IP6=$(curl -6 -s icanhazip.com | cut -f1-4 -d':')
-
 echo "Internal IP = ${IP4}, External subnet for IPv6 = ${IP6}"
 
 # -----------------------------
-# Nhập port
+# Nhập FIRST_PORT
 # -----------------------------
 while :; do
   read -p "Enter FIRST_PORT between 21000 and 61000: " FIRST_PORT
@@ -67,42 +66,44 @@ seq $FIRST_PORT $LAST_PORT | while read port; do
 done >"$WORKDATA"
 
 # -----------------------------
-# Gen ifconfig script
+# Tạo script ifconfig IPv6
 # -----------------------------
 awk -F "/" '{print "sudo ip -6 addr add "$5"/64 dev eth0"}' "$WORKDATA" >"$WORKDIR/boot_ifconfig.sh"
 chmod +x "$WORKDIR/boot_ifconfig.sh"
 
 # -----------------------------
-# Cài 3proxy
+# Tải và build 3proxy
 # -----------------------------
-echo "Downloading and building 3proxy..."
+echo "Downloading 3proxy..."
 URL="https://github.com/z3APA3A/3proxy/archive/3proxy-0.8.6.tar.gz"
 wget -qO- $URL | bsdtar -xvf-
+
 cd 3proxy-3proxy-0.8.6
 
-# Patch Makefile.Linux để GCC mới không lỗi linker
+# Patch Makefile.Linux để tránh lỗi linker trên GCC ≥10
 sed -i 's/CFLAGS = -O2/CFLAGS = -O2 -fcommon/' Makefile.Linux
 
+echo "Building 3proxy with gcc-10..."
 make -f Makefile.Linux
 sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
 sudo cp src/3proxy /usr/local/etc/3proxy/bin/
 cd "$WORKDIR"
 
 # -----------------------------
-# Gen 3proxy config
+# Tạo config 3proxy
 # -----------------------------
 awk -F "/" 'BEGIN{print "daemon\nmaxconn 2000\nauth strong"} {print "users "$1":CL:"$2"\nproxy -6 -n -a -p"$4" -i"$3" -e"$5"\nflush"}' "$WORKDATA" \
     > /usr/local/etc/3proxy/3proxy.cfg
 sudo chmod 644 /usr/local/etc/3proxy/3proxy.cfg
 
 # -----------------------------
-# Chạy ifconfig và 3proxy
+# Chạy IPv6 ifconfig và 3proxy
 # -----------------------------
 bash "$WORKDIR/boot_ifconfig.sh"
 sudo /usr/local/etc/3proxy/bin/3proxy /usr/local/etc/3proxy/3proxy.cfg &
 
 # -----------------------------
-# Gen proxy file
+# Tạo file proxy.txt
 # -----------------------------
 cat >proxy.txt <<EOF
 $(awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' ${WORKDATA})
@@ -117,4 +118,4 @@ else
     echo "proxy.txt not found!"
 fi
 
-echo "3proxy setup completed!"
+echo "3proxy setup completed successfully!"
