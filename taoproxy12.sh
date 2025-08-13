@@ -28,13 +28,13 @@ gen64() {
 }
 
 # -----------------------------
-# Cài dependencies và GCC-10
+# Cài dependencies và GCC-9
 # -----------------------------
 sudo apt update -y
-sudo apt install -y wget zip curl net-tools libarchive-tools build-essential gcc-10 g++-10 make
+sudo apt install -y wget zip curl net-tools libarchive-tools build-essential gcc-9 g++-9 make
 
-export CC=gcc-10
-export CXX=g++-10
+export CC=gcc-9
+export CXX=g++-9
 
 # -----------------------------
 # Lấy IP
@@ -80,10 +80,10 @@ wget -qO- $URL | bsdtar -xvf-
 
 cd 3proxy-3proxy-0.8.6
 
-# Patch Makefile.Linux để tránh lỗi linker trên GCC ≥10
+# Patch Makefile.Linux để tránh linker error trên GCC 9
 sed -i 's/CFLAGS = -O2/CFLAGS = -O2 -fcommon/' Makefile.Linux
 
-echo "Building 3proxy with gcc-10..."
+echo "Building 3proxy with gcc-9..."
 make -f Makefile.Linux
 sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
 sudo cp src/3proxy /usr/local/etc/3proxy/bin/
