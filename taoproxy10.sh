@@ -83,7 +83,6 @@ cd 3proxy-3proxy-0.8.6
 # Patch Makefile.Linux để GCC mới không lỗi linker
 sed -i 's/CFLAGS = -O2/CFLAGS = -O2 -fcommon/' Makefile.Linux
 
-make clean
 make -f Makefile.Linux
 sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
 sudo cp src/3proxy /usr/local/etc/3proxy/bin/
