@@ -3,9 +3,9 @@ set -e
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # -----------------------------
-# Cấu hình WORKDIR
+# WORKDIR
 # -----------------------------
-WORKDIR="/home/cloudfly"
+WORKDIR="/home/nvtt"
 WORKDATA="${WORKDIR}/data.txt"
 sudo mkdir -p "$WORKDIR"
 sudo chown $USER:$USER "$WORKDIR"
@@ -31,53 +31,10 @@ gen64() {
 }
 
 # -----------------------------
-# Cài 3proxy
-# -----------------------------
-install_3proxy() {
-    echo "Installing 3proxy..."
-    URL="https://github.com/z3APA3A/3proxy/archive/3proxy-0.8.6.tar.gz"
-    wget -qO- $URL | bsdtar -xvf-
-    cd 3proxy-3proxy-0.8.6
-    make -f Makefile.Linux
-    sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
-    sudo cp src/3proxy /usr/local/etc/3proxy/bin/
-    cd "$WORKDIR"
-}
-
-# -----------------------------
-# Tải file proxy
-# -----------------------------
-download_proxy() {
-    if [[ -f proxy.txt ]]; then
-        curl -F "file=@proxy.txt" https://file.io
-    else
-        echo "proxy.txt not found!"
-    fi
-}
-
-# -----------------------------
-# Sinh dữ liệu proxy
-# -----------------------------
-gen_data() {
-    seq $FIRST_PORT $LAST_PORT | while read port; do
-        echo "user$port/$(random)/$IP4/$port/$(gen64 $IP6)"
-    done
-}
-
-# -----------------------------
-# Tạo file proxy.txt cho user
-# -----------------------------
-gen_proxy_file_for_user() {
-    cat >proxy.txt <<EOF
-$(awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' ${WORKDATA})
-EOF
-}
-
-# -----------------------------
-# Cài đặt dependencies
+# Cài dependencies
 # -----------------------------
 sudo apt update -y
-sudo apt install -y wget gcc net-tools zip curl libarchive-tools
+sudo apt install -y build-essential gcc make net-tools wget zip curl libarchive-tools
 
 # -----------------------------
 # Lấy IP
@@ -103,18 +60,38 @@ LAST_PORT=$(($FIRST_PORT + 750))
 echo "LAST_PORT is $LAST_PORT. Continue..."
 
 # -----------------------------
-# Sinh dữ liệu và file config
+# Sinh dữ liệu proxy
 # -----------------------------
-gen_data >"$WORKDATA"
+seq $FIRST_PORT $LAST_PORT | while read port; do
+    echo "user$port/$(random)/$IP4/$port/$(gen64 $IP6)"
+done >"$WORKDATA"
 
+# -----------------------------
 # Gen ifconfig script
+# -----------------------------
 awk -F "/" '{print "sudo ip -6 addr add "$5"/64 dev eth0"}' "$WORKDATA" >"$WORKDIR/boot_ifconfig.sh"
 chmod +x "$WORKDIR/boot_ifconfig.sh"
 
+# -----------------------------
 # Cài 3proxy
-install_3proxy
+# -----------------------------
+echo "Downloading and building 3proxy..."
+URL="https://github.com/z3APA3A/3proxy/archive/3proxy-0.8.6.tar.gz"
+wget -qO- $URL | bsdtar -xvf-
+cd 3proxy-3proxy-0.8.6
 
+# Patch Makefile.Linux để GCC mới không lỗi linker
+sed -i 's/CFLAGS = -O2/CFLAGS = -O2 -fcommon/' Makefile.Linux
+
+make clean
+make -f Makefile.Linux
+sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
+sudo cp src/3proxy /usr/local/etc/3proxy/bin/
+cd "$WORKDIR"
+
+# -----------------------------
 # Gen 3proxy config
+# -----------------------------
 awk -F "/" 'BEGIN{print "daemon\nmaxconn 2000\nauth strong"} {print "users "$1":CL:"$2"\nproxy -6 -n -a -p"$4" -i"$3" -e"$5"\nflush"}' "$WORKDATA" \
     > /usr/local/etc/3proxy/3proxy.cfg
 sudo chmod 644 /usr/local/etc/3proxy/3proxy.cfg
@@ -125,10 +102,20 @@ sudo chmod 644 /usr/local/etc/3proxy/3proxy.cfg
 bash "$WORKDIR/boot_ifconfig.sh"
 sudo /usr/local/etc/3proxy/bin/3proxy /usr/local/etc/3proxy/3proxy.cfg &
 
+# -----------------------------
 # Gen proxy file
-gen_proxy_file_for_user
+# -----------------------------
+cat >proxy.txt <<EOF
+$(awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' ${WORKDATA})
+EOF
 
+# -----------------------------
 # Upload proxy.txt
-download_proxy
+# -----------------------------
+if [[ -f proxy.txt ]]; then
+    curl -F "file=@proxy.txt" https://file.io
+else
+    echo "proxy.txt not found!"
+fi
 
 echo "3proxy setup completed!"
