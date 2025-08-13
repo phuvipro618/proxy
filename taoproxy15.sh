@@ -85,7 +85,8 @@ cd "$WORKDIR"
 # Tạo config 3proxy
 # -----------------------------
 awk -F "/" 'BEGIN{print "daemon\nmaxconn 2000\nauth strong"} {print "users "$1":CL:"$2"\nproxy -6 -n -a -p"$4" -i"$3" -e"$5"\nflush"}' "$WORKDATA" \
-    > /usr/local/etc/3proxy/3proxy.cfg
+    | sudo tee /usr/local/etc/3proxy/3proxy.cfg > /dev/null
+
 sudo chmod 644 /usr/local/etc/3proxy/3proxy.cfg
 
 # -----------------------------
