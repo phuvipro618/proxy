@@ -55,4 +55,32 @@ users admin1:CL:123456
 allow admin1
 EOF
 
-for port in {25000..254
+for port in {25000..25499}; do
+  ip6=$(gen_ipv6)
+  sudo ip -6 addr add "$ip6/64" dev eth0 > /dev/null 2>&1 || true
+  echo "proxy -6 -n -a -p$port -i0.0.0.0 -e$ip6" | sudo tee -a $CONFIG_FILE > /dev/null
+done
+
+echo "flush" | sudo tee -a $CONFIG_FILE > /dev/null
+
+# Tạo service
+sudo tee /etc/systemd/system/3proxy.service > /dev/null <<EOF
+[Unit]
+Description=3proxy Proxy Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/3proxy /etc/3proxy/3proxy.cfg
+ExecReload=/bin/kill -HUP \$MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload > /dev/null 2>&1
+sudo systemctl enable 3proxy > /dev/null 2>&1 || true
+sudo systemctl restart 3proxy || true
+
+echo "✅ Cài đặt hoàn tất!"
