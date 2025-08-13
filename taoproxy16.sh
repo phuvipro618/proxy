@@ -65,7 +65,9 @@ done >"$WORKDATA"
 # -----------------------------
 # Tạo script ifconfig IPv6
 # -----------------------------
-awk -F "/" '{print "sudo ip -6 addr add "$5"/64 dev eth0"}' "$WORKDATA" >"$WORKDIR/boot_ifconfig.sh"
+IFACE=$(ip route | grep '^default' | awk '{print $5}')
+echo "Using network interface: $IFACE"
+awk -F "/" '{print "sudo ip -6 addr add "$5"/64 dev '$IFACE'"}' "$WORKDATA" > "$WORKDIR/boot_ifconfig.sh"
 chmod +x "$WORKDIR/boot_ifconfig.sh"
 
 # -----------------------------
