@@ -78,7 +78,7 @@ wget -qO- $URL | bsdtar -xvf-
 cd 3proxy-master
 make -f Makefile.Linux
 sudo mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
-sudo cp src/3proxy /usr/local/etc/3proxy/bin/
+sudo cp bin/* /usr/local/etc/3proxy/bin/
 cd "$WORKDIR"
 
 # -----------------------------
