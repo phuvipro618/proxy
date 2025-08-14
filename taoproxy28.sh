@@ -16,13 +16,8 @@ mkdir -p /etc/3proxy/logs
 cp ./bin/3proxy /usr/local/bin/
 chmod +x /usr/local/bin/3proxy
 
-# Lấy IPv4 public
 IPV4=$(curl -4 -s ifconfig.me)
-
-# Lấy interface mạng
 IFACE=$(ip route | grep default | awk '{print $5}')
-
-# Lấy prefix IPv6
 IPV6_PREFIX=$(ip -6 addr show dev $IFACE | grep 'inet6' | grep -v 'fe80' \
     | awk '{print $2}' | head -n1 | cut -d'/' -f1 | awk -F: '{print $1":"$2":"$3":"$4}')
 
@@ -31,7 +26,6 @@ if [ -z "$IPV6_PREFIX" ]; then
     exit 1
 fi
 
-# Hàm random IPv6
 randhex() { printf "%04x" $((RANDOM%65536)); }
 gen_ipv6() { echo "${IPV6_PREFIX}:$(randhex):$(randhex):$(randhex):$(randhex)"; }
 
@@ -51,7 +45,6 @@ EOF
 
 > $PROXY_TXT
 
-# Tạo 100 proxy
 for port in $(seq 21000 21099); do
     ip6=$(gen_ipv6)
     ip -6 addr add "$ip6/64" dev $IFACE || true
@@ -61,12 +54,10 @@ done
 
 echo "flush" >> $CONFIG_FILE
 
-# Mở port
 for port in $(seq 21000 21099); do
     ufw allow $port/tcp >/dev/null 2>&1 || true
 done
 
-# Tạo service
 cat <<EOF > /etc/systemd/system/3proxy.service
 [Unit]
 Description=3proxy Proxy Server
@@ -79,4 +70,11 @@ ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 
 [Install]
-WantedBy=multi-
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable 3proxy
+systemctl restart 3proxy
+
+echo "✅ Hoàn tất! Danh sách proxy lưu ở $PROXY_TXT"
