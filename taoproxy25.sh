@@ -50,7 +50,7 @@ EOF
 # ✅ Tạo 500 proxy IPv6
 for port in $(seq 21000 21499); do
     ip6=$(gen_ipv6)
-    ip -6 addr add "$ip6/64" dev eth0 || true
+    ip -6 addr add "$ip6/64" dev enX0 || true
     echo "proxy -6 -n -a -p$port -i0.0.0.0 -e$ip6" >> $CONFIG_FILE
 done
 
