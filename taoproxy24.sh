@@ -24,7 +24,8 @@ done
 CONFIG_FILE="/etc/3proxy/3proxy.cfg"
 
 # ✅ Lấy prefix IPv6
-IPV6_PREFIX=$(ip -6 addr show dev eth0 | grep 'inet6' | grep -v 'fe80' \
+IFACE=$(ip route | grep default | awk '{print $5}')
+IPV6_PREFIX=$(ip -6 addr show dev $IFACE | grep 'inet6' | grep -v 'fe80' \
     | awk '{print $2}' | head -n1 | cut -d'/' -f1 | awk -F: '{print $1":"$2":"$3":"$4}')
 
 if [ -z "$IPV6_PREFIX" ]; then
