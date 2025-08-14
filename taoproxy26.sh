@@ -22,6 +22,10 @@ for port in $(seq 21000 21499); do
 done
 
 CONFIG_FILE="/etc/3proxy/3proxy.cfg"
+PROXY_LIST="/root/proxy.txt"
+
+# ✅ Lấy IPv4 public
+IPV4_ADDR=$(curl -s ipv4.icanhazip.com)
 
 # ✅ Lấy prefix IPv6
 IFACE=$(ip route | grep default | awk '{print $5}')
@@ -33,9 +37,14 @@ if [ -z "$IPV6_PREFIX" ]; then
     exit 1
 fi
 
+# ✅ Hàm random IPv6
 randhex() { printf "%04x" $((RANDOM%65536)); }
 gen_ipv6() { echo "${IPV6_PREFIX}:$(randhex):$(randhex):$(randhex):$(randhex)"; }
 
+# Xóa proxy list cũ
+> "$PROXY_LIST"
+
+# Ghi cấu hình 3proxy
 cat <<EOF > $CONFIG_FILE
 nserver 8.8.8.8
 nserver 1.1.1.1
@@ -47,15 +56,17 @@ users admin123:CL:admin123
 allow admin123
 EOF
 
-# ✅ Tạo 500 proxy IPv6
+# ✅ Tạo 500 proxy IPv6 random (listen IPv4, outbound IPv6)
 for port in $(seq 21000 21499); do
     ip6=$(gen_ipv6)
-    ip -6 addr add "$ip6/64" dev enX0 || true
-    echo "proxy -6 -n -a -p$port -i0.0.0.0 -e$ip6" >> $CONFIG_FILE
+    ip -6 addr add "$ip6/64" dev $IFACE || true
+    echo "proxy -6 -n -a -p$port -i$IPV4_ADDR -e$ip6" >> $CONFIG_FILE
+    echo "$IPV4_ADDR:$port:admin123:admin123" >> $PROXY_LIST
 done
 
 echo "flush" >> $CONFIG_FILE
 
+# ✅ Tạo service
 cat <<EOF > /etc/systemd/system/3proxy.service
 [Unit]
 Description=3proxy Proxy Server
@@ -75,4 +86,5 @@ systemctl daemon-reload
 systemctl enable 3proxy
 systemctl restart 3proxy
 
-echo "✅ Hoàn tất! Đã tạo 500 proxy IPv6."
+echo "✅ Hoàn tất!"
+echo "📂 Danh sách proxy lưu tại: $PROXY_LIST"
